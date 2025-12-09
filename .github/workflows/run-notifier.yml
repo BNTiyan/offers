@@ -1,0 +1,54 @@
+name: Run Offer Notifier
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Every day at 08:00 UTC (adjust to your timezone preference)
+    - cron: "0 8 * * *"
+
+jobs:
+  run-notifier:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run notifier
+        env:
+          # Choose channel: email, whatsapp, or both
+          NOTIFICATION_CHANNEL: email
+
+          # Email settings (recommended: store as GitHub secrets)
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USE_TLS: ${{ secrets.SMTP_USE_TLS }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+
+          # Optional: Twilio WhatsApp settings if you want WhatsApp from Actions
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_WHATSAPP_FROM: ${{ secrets.TWILIO_WHATSAPP_FROM }}
+          TWILIO_WHATSAPP_TO: ${{ secrets.TWILIO_WHATSAPP_TO }}
+
+          # Categories and other config can be overridden here if desired
+          CATEGORIES: clothes,shoes,jackets,toys,kids toys,handbags,wallets
+          MAX_OFFERS_PER_STORE: 5
+
+        run: |
+          python -m src.main
+
+
