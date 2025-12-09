@@ -44,8 +44,10 @@ def build_message_text(offers: Iterable[Offer], max_per_store: int) -> str:
 
 
 def send_whatsapp_message(config: AppConfig, offers: Iterable[Offer]) -> None:
+    # Make Twilio truly optional: if credentials are missing, just skip sending.
     if not config.twilio.account_sid or not config.twilio.auth_token:
-        raise RuntimeError("Twilio credentials are not configured.")
+        print("Twilio credentials are not configured; skipping WhatsApp notification.")
+        return
 
     message_text = build_message_text(offers, config.max_offers_per_store)
 
