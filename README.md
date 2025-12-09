@@ -1,6 +1,6 @@
-## Offer Notifier – WhatsApp Deals from Major Stores
+## Offer Notifier – Deals from Major Stores (WhatsApp or Email)
 
-This project fetches **discounted offers** (original price, reduced price, link) from various shopping websites and **sends a WhatsApp message automatically** with the best deals.
+This project fetches **discounted offers** (original price, reduced price, link) from various shopping websites and can **send them automatically via WhatsApp or email**.
 
 Supported stores (scaffolded):
 - Amazon
@@ -18,12 +18,13 @@ Supported stores (scaffolded):
 
 - **Store abstraction**: each store has its own module that returns a list of standardized `Offer` objects.
 - **Category filtering**: focus on clothes, shoes, jackets, toys, kids toys (configurable).
-- **WhatsApp notifications**: send a formatted message with:
+- **Notifications**: send a formatted message via **WhatsApp (Twilio)** or **email (SMTP)** with:
   - Original price
   - Discounted price
   - Product title
   - Link
 - **Config-driven**: set everything via environment variables / `.env`.
+- **Optional LLM assist**: if you run a small local LLM via Ollama, it can refine category search phrases per store (disabled by default).
 
 ### 2. Tech Stack
 
@@ -56,17 +57,30 @@ Copy the example env file and edit the values:
 cp env.example .env
 ```
 
-Then open `.env` and set at least:
+Then open `.env` and configure one of the notification channels:
 
-- `TWILIO_ACCOUNT_SID`
-- `TWILIO_AUTH_TOKEN`
-- `TWILIO_WHATSAPP_FROM` (format: `whatsapp:+14155238886` or your approved Twilio sender)
-- `TWILIO_WHATSAPP_TO` (format: `whatsapp:+<your_phone_number>`)
+- **If you want email only (free, no Twilio):**
+  - Set `NOTIFICATION_CHANNEL=email`
+  - Set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USE_TLS`
+  - Set `SMTP_USERNAME`, `SMTP_PASSWORD` (e.g. Gmail app password), `EMAIL_FROM`, `EMAIL_TO`
+- **If you want WhatsApp (Twilio):**
+  - Set `NOTIFICATION_CHANNEL=whatsapp`
+  - Set `TWILIO_ACCOUNT_SID`
+  - Set `TWILIO_AUTH_TOKEN`
+  - Set `TWILIO_WHATSAPP_FROM` (format: `whatsapp:+14155238886` or your approved Twilio sender)
+  - Set `TWILIO_WHATSAPP_TO` (format: `whatsapp:+<your_phone_number>`)
 
-Optional:
+Optional for both:
 
 - `CATEGORIES` – comma-separated list like `clothes,shoes,jackets,toys,kids toys`
 - `MAX_OFFERS_PER_STORE` – integer, how many top offers to include from each store
+
+Optional LLM (local Ollama):
+
+- `LLM_ENABLED` – set to `true` to enable LLM-assisted search term refinement.
+- `LLM_PROVIDER` – currently only `ollama` is supported.
+- `LLM_MODEL` – e.g. `llama3.2` (must be pulled in Ollama).
+- `OLLAMA_URL` – usually `http://localhost:11434/api/generate`.
 
 ### 5. Running the Script
 
