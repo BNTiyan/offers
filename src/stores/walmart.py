@@ -5,7 +5,7 @@ Walmart heavily uses client-side rendering and APIs; this HTML-based example
 may require adjustments or replacement with official APIs.
 """
 
-from typing import List
+from typing import List, Set
 
 import requests
 from bs4 import BeautifulSoup
@@ -18,55 +18,70 @@ SEARCH_URL = "https://www.walmart.com/search"
 
 def fetch_offers(categories: List[str]) -> List[Offer]:
     offers: List[Offer] = []
+    seen_urls: Set[str] = set()
 
-    query = " ".join(categories)
-    params = {"q": query}
     headers = {
         "User-Agent": "Mozilla/5.0 (compatible; OfferNotifier/1.0; +https://example.com)"
     }
 
-    resp = requests.get(SEARCH_URL, params=params, headers=headers, timeout=15)
-    resp.raise_for_status()
+    for category in categories:
+        search_terms = {
+            category,
+            f"{category} sale",
+            f"{category} clearance",
+            f"{category} deals",
+        }
 
-    soup = BeautifulSoup(resp.text, "html.parser")
+        for term in search_terms:
+            params = {"q": term}
 
-    # Walmart often uses data-item-id and product-card-style elements.
-    product_elements = soup.select("[data-item-id]")
+            resp = requests.get(SEARCH_URL, params=params, headers=headers, timeout=15)
+            print(f"  [Walmart] term='{term}' url={resp.url}")
+            resp.raise_for_status()
 
-    for el in product_elements[:30]:
-        title_el = el.select_one("a[aria-label]")
-        price_el = el.select_one("span[aria-hidden='true']")
-        link_el = el.select_one("a[aria-label]")
+            soup = BeautifulSoup(resp.text, "html.parser")
 
-        if not (title_el and price_el and link_el):
-            continue
+            # Walmart often uses data-item-id and product-card-style elements.
+            product_elements = soup.select("[data-item-id]")
 
-        title = title_el.get("aria-label") or title_el.get_text(strip=True)
-        url = link_el.get("href") or ""
-        if url.startswith("/"):
-            url = f"https://www.walmart.com{url}"
+            for el in product_elements[:30]:
+                title_el = el.select_one("a[aria-label]")
+                price_el = el.select_one("span[aria-hidden='true']")
+                link_el = el.select_one("a[aria-label]")
 
-        currency = "$"
+                if not (title_el and price_el and link_el):
+                    continue
 
-        def parse_price(text: str) -> float | None:
-            text = text.replace("$", "").replace(",", "").strip()
-            try:
-                return float(text.split()[0])
-            except (ValueError, IndexError):
-                return None
+                title = title_el.get("aria-label") or title_el.get_text(strip=True)
+                url = link_el.get("href") or ""
+                if url.startswith("/"):
+                    url = f"https://www.walmart.com{url}"
 
-        discounted_price = parse_price(price_el.get_text(strip=True))
+                if url in seen_urls:
+                    continue
+                seen_urls.add(url)
 
-        offers.append(
-            Offer(
-                store="Walmart",
-                title=title,
-                original_price=None,  # not easily available from HTML list page
-                discounted_price=discounted_price,
-                currency=currency,
-                url=url,
-            )
-        )
+                currency = "$"
+
+                def parse_price(text: str) -> float | None:
+                    text = text.replace("$", "").replace(",", "").strip()
+                    try:
+                        return float(text.split()[0])
+                    except (ValueError, IndexError):
+                        return None
+
+                discounted_price = parse_price(price_el.get_text(strip=True))
+
+                offers.append(
+                    Offer(
+                        store="Walmart",
+                        title=title,
+                        original_price=None,  # not easily available from HTML list page
+                        discounted_price=discounted_price,
+                        currency=currency,
+                        url=url,
+                    )
+                )
 
     return offers
 

@@ -6,8 +6,8 @@ from src.models import Offer
 
 from . import (  # Add other stores here as they are implemented
     amazon,
-    costco,
-    kate_spade,
+    # costco,  # temporarily disabled
+    # kate_spade,  # temporarily disabled
     michael_kors,
     nike,
     nordstrom_rack,
@@ -27,8 +27,8 @@ def fetch_all_offers(categories: List[str]) -> List[Offer]:
 
     for module in (
         amazon,
-        costco,
-        kate_spade,
+        # costco,  # temporarily disabled
+        # kate_spade,  # temporarily disabled
         michael_kors,
         nike,
         nordstrom_rack,
@@ -36,12 +36,17 @@ def fetch_all_offers(categories: List[str]) -> List[Offer]:
         tory_burch,
         walmart,
     ):
+        store_name = module.__name__.split(".")[-1]
+        print(f"Fetching offers from {store_name}...")
+        before = len(offers)
         try:
             offers.extend(module.fetch_offers(categories))
         except Exception as exc:  # noqa: BLE001
             # Fail-soft per store so one broken integration doesn't kill everything
-            # In a real system, log this instead of printing.
             print(f"Error fetching offers from {module.__name__}: {exc}")
+        after = len(offers)
+        added = after - before
+        print(f"Finished {store_name}: added {added} offers (total so far: {after}).")
 
     return offers
 
